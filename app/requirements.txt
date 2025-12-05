@@ -1,7 +1,7 @@
 fastapi==0.123.0
 python-multipart==0.0.20
 uvicorn==0.38.0
-numpy
-onnxruntime
-pillow
-httpx
+numpy==2.3.5
+onnxruntime==1.23.2
+pillow==12.0.0
+httpx==0.28.1
