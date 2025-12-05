@@ -14,7 +14,7 @@ install_python_deps(){
     python3 -m venv myenv
     source myenv/bin/activate
     cd ${WORKDIR}
-    pip3 install -r app/requirements.txt
+    pip3 install -r requirements.txt
 }
 
 
