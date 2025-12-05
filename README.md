@@ -4,6 +4,8 @@
 
 此项目基于[AdamCodd/vit-base-nsfw-detector/](https://huggingface.co/AdamCodd/vit-base-nsfw-detector/) 实现，并封装为HTTP API调用，可用于识别网络色情图像（nsfw识别），适合纯CPU机器推理，轻量级实现方案。
 
+> 关于AdamCodd/vit-base-nsfw-detector：基于ViT架构的保守型NSFW检测模型，能识别真实图片和绘画中的敏感内容，但对AI生成图片准确率较低。
+
 ## 特点
 
 * 纯CPU推理，适合大多数云服务器或VPS
