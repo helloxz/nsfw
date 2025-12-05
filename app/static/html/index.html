@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>NSFW Check</title>
+  <!-- Vue 2 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+  <!-- Element UI -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/theme-chalk/index.css">
+  <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/index.js"></script>
+  <!-- Axios -->
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.7.7/dist/axios.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1220;
+      --card: #1b1f31;
+      --accent: #4c7cff;
+      --text: #e8eaf6;
+      --muted: #9aa0b4;
+      --danger: #ff5e7b;
+      --success: #3ecf8e;
+    }
+    /* 增强的科技感主题与动效 */
+    body {
+      margin: 0;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, #121531 0%, #0b0f24 55%, #070a16 100%),
+        conic-gradient(from 180deg at 30% 20%, rgba(76,124,255,.12), rgba(160,92,255,.08), rgba(62,207,142,.08));
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    }
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: conic-gradient(from 220deg, #4c7cff, #9b6eff, #3ecf8e, #4c7cff);
+      animation: spin 6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .title {
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: .4px;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(30,36,60,.75), rgba(20,24,40,.75));
+      backdrop-filter: saturate(1.2) blur(6px);
+      border-radius: 20px;
+      border: 1px solid rgba(120,130,170,.2);
+      padding: 18px;
+      box-shadow:
+        0 12px 40px rgba(10,15,30,.45),
+        inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr; /* 统一为单列，上下布局 */
+      gap: 16px;
+    }
+    /* 移除 PC 分栏 */
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .thumb-wrap {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #0b0e1a;
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px dashed rgba(140,150,180,.35);
+    }
+    .thumb {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: contain;
+      max-height: 60vh;
+    }
+    .mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(10,12,20,.35);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: .4px;
+      text-shadow: 0 2px 12px rgba(0,0,0,.6);
+      cursor: pointer;
+    }
+    .meta {
+      display: grid;
+      gap: 10px;
+    }
+    .kv-list {
+      display: grid;
+      gap: 10px;
+    }
+    .kv {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(120,130,170,.16);
+      border-radius: 12px;
+    }
+    .kv .k { color: var(--muted); font-size: 13px; }
+    .kv .v { font-weight: 600; }
+    .footer {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .uploader-box {
+      border-radius: 12px;
+      overflow: hidden;
+      padding: 8px;
+    }
+    .uploader-box .el-upload {
+      display: block;
+      width: 100%;
+    }
+    .uploader-box .el-upload-dragger {
+      width: 100%;
+      box-sizing: border-box;
+      background: linear-gradient(180deg, rgba(26,32,56,.75), rgba(18,22,40,.75));
+      border: 1px dashed rgba(120,140,200,.35);
+      color: #c9ccea;
+      transition: all .25s ease;
+    }
+    .uploader-box .el-upload-dragger:hover {
+      border-color: rgba(96,140,255,.75);
+      box-shadow: 0 10px 28px rgba(76,124,255,.28), inset 0 0 0 1px rgba(255,255,255,.05);
+      transform: translateY(-1px);
+    }
+    .uploader-box .el-icon-upload {
+      color: #8ea3ff;
+      filter: drop-shadow(0 6px 16px rgba(76,124,255,.35));
+    }
+
+    /* 自定义状态徽章（替换 el-tag） */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .2px;
+      border: 1px solid rgba(160,170,210,.22);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      box-shadow: 0 6px 20px rgba(10,15,30,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+      color: #dfe3ff;
+    }
+    .status-badge.is-idle { color: #c9d1ff; }
+    .status-badge.is-loading { color: #a5b8ff; }
+    .status-badge.is-success {
+      color: #cffff1;
+      border-color: rgba(62,207,142,.32);
+      box-shadow: 0 6px 20px rgba(62,207,142,.22), inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+    .status-badge.is-danger {
+      color: #ffd7df;
+      border-color: rgba(255,94,123,.32);
+      box-shadow: 0 6px 20px rgba(255,94,123,.22), inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+
+    /* GitHub 圆形图标按钮 */
+    .gh-btn {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(140,150,200,.25);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all .2s ease;
+      vertical-align: middle;
+    }
+    .gh-btn:hover {
+      border-color: rgba(120,160,255,.6);
+      box-shadow: 0 8px 24px rgba(76,124,255,.35);
+      transform: translateY(-1px);
+    }
+    .gh-btn svg { width: 18px; height: 18px; fill: #cfd6ff; }
+
+    /* Token 行样式（放在上传框下方） */
+    .token-row {
+      margin-bottom: 12px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .token-row .el-input__inner {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(140,150,180,.25);
+      color: var(--text);
+      height: 34px;
+      line-height: 34px;
+    }
+    .token-row .el-input__prefix {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 34px;
+    }
+    .token-row .el-input__prefix .el-icon-key {
+      font-size: 16px;
+      line-height: 34px;
+      color: #9fb0ff;
+    }
+
+    /* 右上区域上下居中对齐 */
+    .actions { align-items: center; }
+
+    /* 语言切换下拉：胶囊渐变与暗色融合 */
+    .actions .el-select {
+      --sel-bg: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      --sel-border: rgba(140,150,200,.28);
+      --sel-hover: rgba(120,160,255,.6);
+      --sel-text: #dfe3ff;
+      --sel-muted: #aab4dd;
+      height: 34px;
+    }
+    .actions .el-select .el-input__inner {
+      background: var(--sel-bg);
+      border: 1px solid var(--sel-border);
+      color: var(--sel-text);
+      border-radius: 999px;
+      height: 34px;
+      line-height: 34px;
+      padding: 0 28px 0 34px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+    .actions .el-select .el-input__inner::placeholder { color: var(--sel-muted); }
+    .actions .el-select:hover .el-input__inner {
+      border-color: var(--sel-hover);
+      box-shadow: 0 8px 24px rgba(76,124,255,.28);
+    }
+    .actions .el-select .el-input__suffix {
+      right: 10px;
+      color: var(--sel-muted);
+    }
+    .actions .el-select .el-input__prefix {
+      left: 10px;
+      color: #9fb0ff;
+    }
+    /* 下拉浮层配色 */
+    .el-select-dropdown {
+      background: linear-gradient(180deg, rgba(17,21,40,.98), rgba(13,16,30,.98));
+      border: 1px solid rgba(140,150,200,.25);
+      box-shadow: 0 10px 30px rgba(10,15,30,.45);
+    }
+    .el-select-dropdown__item {
+      color: #dfe3ff;
+    }
+    .el-select-dropdown__item:hover,
+    .el-select-dropdown__item.selected {
+      background: rgba(76,124,255,.14);
+      color: #ffffff;
+    }
+
+    /* 统一 GitHub 图标按钮高度，确保与下拉居中对齐 */
+    .gh-btn {
+      height: 34px; width: 34px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <div class="header">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <div class="title">{{ t('title') }}</div>
+          <div class="sub">{{ t('subtitle') }}</div>
+        </div>
+      </div>
+      <div class="actions">
+        <!-- 移除右上角 Token 输入，保留语言切换与 GitHub 图标按钮 -->
+        <el-select v-model="lang" size="mini" @change="onLangChange" style="width:120px">
+          <el-option label="中文" value="zh"></el-option>
+          <el-option label="English" value="en"></el-option>
+        </el-select>
+        <el-button type="text" class="gh-btn" circle :title="t('github')" @click="openGithub">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 .2a8 8 0 0 0-2.53 15.6c.4.07.55-.17.55-.38l-.01-1.34c-2.25.49-2.72-1.08-2.72-1.08-.36-.92-.88-1.16-.88-1.16-.72-.5.05-.49.05-.49.8.06 1.22.82 1.22.82.71 1.22 1.86.86 2.31.66.07-.52.28-.86.51-1.06-1.8-.2-3.69-.9-3.69-4 0-.88.31-1.6.82-2.17-.08-.2-.36-1.02.08-2.13 0 0 .68-.22 2.22.83a7.7 7.7 0 0 1 4.04 0c1.54-1.05 2.22-.83 2.22-.83.44 1.11.16 1.93.08 2.13.51.57.82 1.29.82 2.17 0 3.11-1.9 3.8-3.71 4 .29.25.55.74.55 1.5l-.01 2.22c0 .21.15.45.55.38A8 8 0 0 0 8 .2Z"/>
+          </svg>
+        </el-button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <!-- Token 输入移动到上传框上方 -->
+        <div class="token-row">
+          <el-input
+            v-model="token"
+            size="small"
+            clearable
+            :placeholder="t('tokenPlaceholder')"
+            @change="onTokenChange"
+            @clear="onTokenChange('')"
+          >
+            <i slot="prefix" class="el-icon-key"></i>
+          </el-input>
+        </div>
+
+        <div class="uploader-box">
+          <el-upload
+            drag
+            action=""
+            :multiple="false"
+            :auto-upload="true"
+            :limit="1"
+            :on-change="onFileChange"
+            :http-request="doUpload"
+            :file-list="fileList"
+            :before-upload="beforeUpload"
+            :show-file-list="false"
+            accept="image/jpeg,image/png,image/bmp,image/webp"
+            tip
+          >
+            <i class="el-icon-upload"></i>
+            <div class="el-upload__text">{{ t('uploadTip1') }}<em>{{ t('uploadTip2') }}</em></div>
+            <div class="el-upload__tip" slot="tip">{{ t('limitTip') }}</div>
+          </el-upload>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="meta">
+          <div class="kv">
+            <div class="k">{{ t('status') }}</div>
+            <div class="v">
+              <!-- 使用自定义状态徽章替换 el-tag -->
+              <span v-if="error" class="status-badge is-danger">
+                <i class="el-icon-warning"></i>{{ error }}
+              </span>
+              <span v-else-if="loading" class="status-badge is-loading">
+                <i class="el-icon-loading"></i>{{ t('loading') }}
+              </span>
+              <span v-else-if="result && result.is_nsfw" class="status-badge is-danger">
+                <i class="el-icon-warning"></i>{{ t('nsfw') }}
+              </span>
+              <span v-else-if="result && !result.is_nsfw" class="status-badge is-success">
+                <i class="el-icon-check"></i>{{ t('safe') }}
+              </span>
+              <span v-else class="status-badge is-idle">
+                <i class="el-icon-time"></i>{{ t('idle') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 页面内展示后端结果：sfw/nsfw/is_nsfw -->
+          <div class="kv" v-if="result">
+            <div class="k">sfw</div>
+            <div class="v">{{ (result.sfw * 100).toFixed(2) }}%</div>
+          </div>
+          <div class="kv" v-if="result">
+            <div class="k">nsfw</div>
+            <div class="v">{{ (result.nsfw * 100).toFixed(2) }}%</div>
+          </div>
+          <div class="kv" v-if="result">
+            <div class="k">is_nsfw</div>
+            <div class="v">
+              <span :class="result.is_nsfw ? 'status-badge is-danger' : 'status-badge is-success'">
+                <i :class="result.is_nsfw ? 'el-icon-warning' : 'el-icon-check'"></i>
+                {{ result.is_nsfw ? t('nsfw') : t('safe') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 缩略图 -->
+          <div class="thumb-wrap" v-if="thumbUrl">
+            <img :src="thumbUrl" alt="preview" class="thumb" :style="maskOn ? 'filter: blur(12px);' : ''">
+            <div class="mask" v-if="maskOn" @click="maskOn=false">{{ t('clickReveal') }}</div>
+          </div>
+          <div class="thumb-wrap" v-else>
+            <span class="sub">{{ t('noPreview') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移除弹窗 -->
+    <!--
+    <el-dialog
+      :title="t('resultDialogTitle')"
+      :visible.sync="resultDialogVisible"
+      width="480px"
+      :close-on-click-modal="true"
+    >
+      <div class="dialog-section" v-if="result">
+        <div class="kv-list">
+          <div class="kv">
+            <div class="k">sfw</div>
+            <div class="v">{{ (result.sfw * 100).toFixed(2) }}%</div>
+          </div>
+          <div class="kv">
+            <div class="k">nsfw</div>
+            <div class="v">{{ (result.nsfw * 100).toFixed(2) }}%</div>
+          </div>
+          <div class="kv">
+            <div class="k">is_nsfw</div>
+            <div class="v">
+              <span :class="result.is_nsfw ? 'status-badge is-danger' : 'status-badge is-success'">
+                <i :class="result.is_nsfw ? 'el-icon-warning' : 'el-icon-check'"></i>
+                {{ result.is_nsfw ? t('nsfw') : t('safe') }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="resultDialogVisible=false">{{ t('close') }}</el-button>
+      </span>
+    </el-dialog>
+    -->
+
+    <div class="footer">
+      <span>© 2025 NSFW Check</span>
+      <span>{{ t('footerNote') }}</span>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data() {
+        // 修正语言默认：中文优先，否则英语；并优先使用已保存的设置
+        const savedLang = localStorage.getItem('lang');
+        const browserZh = (navigator.language || navigator.userLanguage || '').toLowerCase().startsWith('zh');
+        const initLang = savedLang ? savedLang : (browserZh ? 'zh' : 'en');
+        const savedToken = localStorage.getItem('token') || '';
+        return {
+          lang: initLang,
+          token: savedToken,
+          dict: {
+            zh: {
+              title: 'NSFW 检测',
+              subtitle: '上传单张图片进行检测，支持拖拽或点击上传；仅支持 jpg/png/bmp/webp。',
+              github: 'GitHub',
+              uploadTip1: '将文件拖到此处，或',
+              uploadTip2: '点击上传',
+              limitTip: '单文件，最大 10MB',
+              startCheck: '开始检测',
+              reset: '重置',
+              status: '状态',
+              loading: '检测中……',
+              idle: '待机',
+              nsfw: '疑似色情',
+              safe: '安全',
+              score: '置信度',
+              clickReveal: '点击显示图片',
+              noPreview: '暂无预览',
+              footerNote: '本页面仅用于演示，结果仅供参考。',
+              fileTooLarge: '文件过大，最大 10MB',
+              badType: '不支持的文件类型',
+              networkErr: '网络错误或服务不可用',
+              tokenPlaceholder: '可选：输入 Token 以提升额度/权限',
+              resultDialogTitle: '检测结果详情',
+              close: '关闭',
+            },
+            en: {
+              title: 'NSFW Check',
+              subtitle: 'Upload a single image to check. Drag & drop or click to upload. Supports jpg/png/bmp/webp.',
+              github: 'GitHub',
+              uploadTip1: 'Drag file here, or',
+              uploadTip2: 'click to upload',
+              limitTip: 'Single file, up to 10MB',
+              startCheck: 'Start',
+              reset: 'Reset',
+              status: 'Status',
+              loading: 'Checking...',
+              idle: 'Idle',
+              nsfw: 'NSFW suspected',
+              safe: 'Safe',
+              score: 'Confidence',
+              clickReveal: 'Click to reveal',
+              noPreview: 'No preview',
+              footerNote: 'Demo only. Results for reference.',
+              fileTooLarge: 'File too large (10MB max)',
+              badType: 'Unsupported file type',
+              networkErr: 'Network error or service unavailable',
+              tokenPlaceholder: 'Optional: enter Token for quota/permission',
+              resultDialogTitle: 'Result Details',
+              close: 'Close',
+            }
+          },
+          fileList: [],
+          rawFile: null,
+          thumbUrl: '',
+          loading: false,
+          result: null,
+          error: '',
+          resultDialogVisible: false
+        };
+      },
+      computed: {
+        maskOn() {
+          return !!(this.result && this.result.is_nsfw);
+        }
+      },
+      methods: {
+        t(key) { return (this.dict[this.lang] || {})[key] || key; },
+        onLangChange(val) { localStorage.setItem('lang', val); },
+        // 新增：Token 持久化（补全被截断的方法）
+        onTokenChange(val) {
+          const v = typeof val === 'string' ? val : this.token;
+          this.token = v || '';
+          if (this.token) localStorage.setItem('token', this.token);
+          else localStorage.removeItem('token');
+        },
+        openGithub() { window.open('https://github.com/helloxz/nsfw', '_blank'); },
+        beforeUpload(file) {
+          const okTypes = ['image/jpeg','image/png','image/bmp','image/webp'];
+          if (!okTypes.includes(file.type)) {
+            this.$message.error(this.t('badType'));
+            return false;
+          }
+          const max = 10 * 1024 * 1024;
+          if (file.size > max) {
+            this.$message.error(this.t('fileTooLarge'));
+            return false;
+          }
+          return true;
+        },
+        onFileChange(file, fileList) {
+          // 自动上传且自动重置上一张的状态
+          // 清理旧预览 URL
+          if (this.thumbUrl) {
+            try { URL.revokeObjectURL(this.thumbUrl); } catch(e) {}
+          }
+          // 仅保留最后一个文件
+          this.fileList = fileList.slice(-1);
+          this.rawFile = file.raw || file;
+          // 重置状态
+          this.result = null;
+          this.error = '';
+          this.loading = false;
+
+          // 生成新缩略图
+          this.thumbUrl = this.rawFile ? URL.createObjectURL(this.rawFile) : '';
+
+          // 由 el-upload 的 :http-request 和 :auto-upload="true" 自动触发 doUpload
+        },
+        async doUpload({ file }) {
+          if (!file) return;
+          if (!this.beforeUpload(file)) return;
+          this.loading = true;
+          this.error = '';
+          this.result = null;
+
+          const fd = new FormData();
+          fd.append('file', file);
+          try {
+            const headers = { 'Content-Type': 'multipart/form-data' };
+            if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+            const resp = await axios.post('/api/upload_check', fd, { headers });
+            const { data } = resp || {};
+            if (!data || data.code !== 200) {
+              this.error = (data && data.msg) ? data.msg : this.t('networkErr');
+              this.$message.error(this.error);
+            } else {
+              const payload = data.data || {};
+              const sfw = typeof payload.sfw === 'number' ? payload.sfw : 0;
+              const nsfw = typeof payload.nsfw === 'number' ? payload.nsfw : 0;
+              const is_nsfw = !!payload.is_nsfw;
+              this.result = { sfw, nsfw, is_nsfw, score: nsfw };
+              // 不再弹窗，直接在页面显示
+            }
+          } catch (e) {
+            this.error = this.t('networkErr');
+            this.$message.error(this.error);
+          } finally {
+            this.loading = false;
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

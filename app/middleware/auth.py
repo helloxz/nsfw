@@ -5,6 +5,11 @@ from fastapi.responses import JSONResponse
 
 # 管理员认证中间件
 async def auth(request: Request, call_next: Callable):
+    # 获取路由路径
+    path = request.url.path
+    # 首页根目录，不需要鉴权
+    if path == "/" or path.startswith("/docs"):
+        return await call_next(request)
     # 从环境变量中获取TOKEN
     import os
     os_token = os.getenv("TOKEN", "")

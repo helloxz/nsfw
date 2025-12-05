@@ -56,22 +56,32 @@ services:
 * `TOKEN`：鉴权密钥（自行设置字符串），不设置则无需鉴权
 * `WORKERS`：进程数量，默认1，多核CPU可增加此数值
 
-## HTTP调用
+## HTTP API
+
+### 通过URL检测
 
 未启用鉴权：
 
 ```
-curl 'http://localhost:6086/check?url=https://www.imgurl.org/static/images/logo.png'
+curl 'http://localhost:6086/api/url_check?url=https://www.imgurl.org/static/images/logo.png'
 ```
 
 启用鉴权：
 
 ```
-curl 'http://localhost:6086/check?url=https://www.imgurl.org/static/images/logo.png' \
+curl 'http://localhost:6086/api/url_check?url=https://www.imgurl.org/static/images/logo.png' \
 --header 'Authorization: Bearer your_token_here'
 ```
 
-返回值：
+### 通过上传图片文件进行检测
+
+```
+curl --location --request POST 'http://localhost:6086/api/upload_check' \
+--header 'Authorization: Bearer xxx' \
+--form 'file=@"/Users/zhangsan/Downloads/2660b27f2e5b24ac.jpeg"'
+```
+
+### 返回值
 
 ```json
 {
@@ -93,7 +103,7 @@ curl 'http://localhost:6086/check?url=https://www.imgurl.org/static/images/logo.
 
 ### 测试API
 
-* 测试地址：[https://nsfw.demo.mba/check?url=https://www.imgurl.org/static/images/logo.png](https://nsfw.demo.mba/check?url=https://www.imgurl.org/static/images/logo.png)
+* 测试地址：[https://nsfw.demo.mba/url_check?url=https://www.imgurl.org/static/images/logo.png](https://nsfw.demo.mba/url_check?url=https://www.imgurl.org/static/images/logo.png)
 
 > 测试地址存在限流设置，仅供测试使用，请勿用于其它用途！
 

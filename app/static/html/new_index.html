@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <title>NSFW 图片检测</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Vue 2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <!-- Element UI CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/theme-chalk/index.css">
+  <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/index.js"></script>
+  <!-- Axios CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+      font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans', 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    #app {
+      max-width: 700px;
+      min-width: 340px;
+      margin: 56px auto 24px auto;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(60,100,180,0.10), 0 1.5px 6px rgba(0,0,0,0.04);
+      padding: 0 0 32px 0;
+      overflow: hidden;
+      position: relative;
+      transition: max-width 0.3s;
+    }
+    .nav-bar {
+      background: linear-gradient(90deg,#409EFF 60%,#67C23A 100%);
+      color: #fff;
+      padding: 22px 40px 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 18px;
+      box-shadow: 0 2px 8px rgba(64,158,255,0.08);
+    }
+    .nav-title {
+      font-size: 1.5em;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .github-btn {
+      background: #fff;
+      color: #409EFF;
+      border-radius: 20px;
+      font-weight: 500;
+      padding: 4px 18px;
+      box-shadow: 0 2px 8px rgba(64,158,255,0.08);
+      transition: background 0.2s;
+    }
+    .github-btn:hover {
+      background: #409EFF;
+      color: #fff;
+    }
+    .lang-switch {
+      min-width: 90px;
+    }
+    .main-content {
+      padding: 36px 40px 0 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+    .token-input {
+      margin-bottom: 0;
+      max-width: 320px;
+    }
+    .upload-card {
+      background: linear-gradient(120deg,#f7fbff 0%,#f0f9eb 100%);
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(64,158,255,0.06);
+      padding: 32px 24px;
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: box-shadow 0.2s;
+    }
+    .upload-demo {
+      width: 100%;
+    }
+    .el-upload-dragger {
+      border: 2px dashed #409EFF;
+      border-radius: 12px;
+      background: #f4f8ff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      animation: draggerGlow 2s infinite alternate;
+    }
+    @keyframes draggerGlow {
+      0% { box-shadow: 0 0 0 rgba(64,158,255,0.08);}
+      100% { box-shadow: 0 0 16px 2px rgba(64,158,255,0.12);}
+    }
+    .el-upload__text {
+      font-size: 1.15em;
+      color: #409EFF;
+      font-weight: 500;
+      margin-top: 10px;
+    }
+    .el-upload__tip {
+      font-size: 13px;
+      color: #888;
+      margin-top: 6px;
+    }
+    .result-card {
+      background: linear-gradient(120deg,#f7fbff 0%,#f0f9eb 100%);
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(64,158,255,0.06);
+      padding: 28px 24px 20px 24px;
+      margin-top: 0;
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      min-width: 0;
+    }
+    .thumb-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto 18px auto;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      cursor: pointer;
+      background: #f4f8ff;
+      transition: box-shadow 0.2s;
+    }
+    .thumb-img {
+      width: 100%;
+      display: block;
+      transition: filter 0.3s;
+      border-radius: 10px;
+    }
+    .blur-mask {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.82);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.18em;
+      color: #409EFF;
+      font-weight: 600;
+      letter-spacing: 1px;
+      backdrop-filter: blur(18px);
+      cursor: pointer;
+      z-index: 2;
+      transition: opacity 0.3s;
+      border-radius: 10px;
+      text-shadow: 0 2px 8px rgba(64,158,255,0.08);
+      user-select: none;
+    }
+    .el-descriptions {
+      width: 100%;
+      margin-top: 8px;
+      background: transparent;
+    }
+    .el-alert {
+      margin-bottom: 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(255,0,0,0.04);
+    }
+    .copyright {
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin-top: 18px;
+      margin-bottom: 0;
+      letter-spacing: 1px;
+      opacity: 0.7;
+    }
+    @media (max-width: 900px) {
+      #app { max-width: 98vw; }
+      .main-content { padding: 24px 10px 0 10px; }
+      .nav-bar { padding: 16px 10px 12px 10px; }
+    }
+    @media (max-width: 600px) {
+      #app { max-width: 100vw; margin: 0; border-radius: 0; box-shadow: none; }
+      .nav-bar { padding: 12px 4px 8px 4px; border-radius: 0; }
+      .main-content { padding: 12px 2px 0 2px; }
+      .upload-card, .result-card { padding: 10px 2px; border-radius: 10px; }
+      .thumb-wrap { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="nav-bar">
+      <div class="nav-title">
+        <img src="https://cdn.jsdelivr.net/gh/helloxz/nsfw/logo.png" alt="logo" style="height:32px;margin-right:12px;border-radius:8px;">
+        {{ t('title') }}
+      </div>
+      <div class="nav-actions">
+        <el-select v-model="lang" size="mini" class="lang-switch">
+          <el-option label="中文" value="zh"></el-option>
+          <el-option label="English" value="en"></el-option>
+        </el-select>
+        <el-button class="github-btn" icon="el-icon-link" @click="goGithub">{{ t('github') }}</el-button>
+      </div>
+    </div>
+    <div class="main-content">
+      <el-input
+        class="token-input"
+        v-model="token"
+        :placeholder="t('tokenPlaceholder')"
+        clearable
+        prefix-icon="el-icon-key"
+        size="small"
+      ></el-input>
+      <div class="upload-card">
+        <el-upload
+          class="upload-demo"
+          drag
+          :show-file-list="false"
+          :auto-upload="true"
+          :before-upload="beforeUpload"
+          :on-change="onFileChange"
+          :http-request="customRequest"
+          :accept="accept"
+        >
+          <i class="el-icon-upload" style="font-size:44px;color:#409EFF;"></i>
+          <div class="el-upload__text">{{ t('uploadTip') }}</div>
+          <div class="el-upload__tip">{{ t('uploadLimit') }}</div>
+        </el-upload>
+      </div>
+      <el-alert
+        v-if="error"
+        :title="error"
+        type="error"
+        show-icon
+        :closable="false"
+      ></el-alert>
+      <div v-if="result && thumbUrl" class="result-card">
+        <div class="thumb-wrap" @click="showFull = true" v-if="result.is_nsfw && !showFull">
+          <img :src="thumbUrl" class="thumb-img" style="filter: blur(18px);" />
+          <div class="blur-mask">{{ t('blurMask') }}</div>
+        </div>
+        <div class="thumb-wrap" v-else>
+          <img :src="thumbUrl" class="thumb-img" />
+        </div>
+        <el-descriptions :title="t('resultTitle')" :column="1" size="small" border>
+          <el-descriptions-item :label="t('sfwLabel')">{{ result.sfw }}</el-descriptions-item>
+          <el-descriptions-item :label="t('nsfwLabel')">{{ result.nsfw }}</el-descriptions-item>
+          <el-descriptions-item :label="t('isNSFWLabel')">
+            <el-tag :type="result.is_nsfw ? 'danger' : 'success'">
+              {{ result.is_nsfw ? t('yes') : t('no') }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </div>
+    <div class="copyright">
+      © 2024 NSFW Detector | <a href="https://github.com/helloxz/nsfw" target="_blank" style="color:#409EFF;text-decoration:none;">GitHub</a>
+    </div>
+  </div>
+  <script>
+    // 多语言文本
+    const i18n = {
+      zh: {
+        title: 'NSFW图片检测',
+        github: 'GitHub',
+        uploadTip: '拖拽图片或点击上传（仅支持单文件）',
+        uploadLimit: '支持 jpg/png/bmp/webp，最大10MB',
+        blurMask: '检测为色情图像，点击查看',
+        resultTitle: '检测结果',
+        tokenPlaceholder: '可选：输入Token（如有）',
+        sfwLabel: '安全系数 (sfw)',
+        nsfwLabel: '风险系数 (nsfw)',
+        isNSFWLabel: '是否色情 (is_nsfw)',
+        yes: '是',
+        no: '否',
+      },
+      en: {
+        title: 'NSFW Image Detection',
+        github: 'GitHub',
+        uploadTip: 'Drag or click to upload (single file only)',
+        uploadLimit: 'Supports jpg/png/bmp/webp, max 10MB',
+        blurMask: 'NSFW detected, click to view',
+        resultTitle: 'Detection Result',
+        tokenPlaceholder: 'Optional: Enter Token (if any)',
+        sfwLabel: 'Safe Score (sfw)',
+        nsfwLabel: 'Risk Score (nsfw)',
+        isNSFWLabel: 'NSFW (is_nsfw)',
+        yes: 'Yes',
+        no: 'No',
+      }
+    };
+
+    new Vue({
+      el: '#app',
+      data() {
+        return {
+          lang: 'zh',
+          token: '',
+          file: null,
+          thumbUrl: '',
+          loading: false,
+          error: '',
+          result: null,
+          showFull: false,
+          accept: 'image/jpeg,image/png,image/bmp,image/webp',
+        };
+      },
+      methods: {
+        t(key) {
+          return i18n[this.lang][key] || key;
+        },
+        goGithub() {
+          window.open('https://github.com/helloxz/nsfw', '_blank');
+        },
+        beforeUpload(file) {
+          const isAllowed = ['image/jpeg','image/png','image/bmp','image/webp'].includes(file.type);
+          const isLt10M = file.size <= 10 * 1024 * 1024;
+          if (!isAllowed) {
+            this.$message.error(this.t('uploadLimit'));
+            return false;
+          }
+          if (!isLt10M) {
+            this.$message.error(this.lang === 'zh' ? '文件过大，最大10MB' : 'File too large, max 10MB');
+            return false;
+          }
+          return true;
+        },
+        onFileChange(file) {
+          this.file = file.raw;
+          this.error = '';
+          this.result = null;
+          this.showFull = false;
+          this.genThumb();
+        },
+        genThumb() {
+          if (!this.file) return;
+          const reader = new FileReader();
+          reader.onload = e => {
+            this.thumbUrl = e.target.result;
+          };
+          reader.readAsDataURL(this.file);
+        },
+        async customRequest(option) {
+          this.loading = true;
+          this.error = '';
+          this.result = null;
+          this.showFull = false;
+          const file = option.file;
+          this.file = file;
+          this.genThumb();
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const headers = {};
+            if (this.token) {
+              headers['Authorization'] = 'Bearer ' + this.token;
+            }
+            const resp = await axios.post('/api/upload_check', formData, {
+              headers,
+              timeout: 20000,
+            });
+            if (resp.data && resp.data.code === 200 && resp.data.data) {
+              this.result = resp.data.data;
+            } else {
+              this.error = resp.data.msg || (this.lang === 'zh' ? '检测失败' : 'Detection failed');
+            }
+          } catch (e) {
+            this.error = (e.response && e.response.data && e.response.data.msg) || e.message || (this.lang === 'zh' ? '网络错误' : 'Network error');
+          } finally {
+            this.loading = false;
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
