@@ -57,6 +57,7 @@ services:
 
 * `TOKEN`：鉴权密钥（自行设置字符串），不设置则无需鉴权
 * `WORKERS`：进程数量，默认1，多核CPU可增加此数值
+* `WEBUI`：是否启用WEBUI，参数值为`off/on`，默认`off`不启用 
 
 ## HTTP API
 
@@ -103,9 +104,9 @@ curl --location --request POST 'http://localhost:6086/api/upload_check' \
 * `data.nsfw`：风险系数 `[0.0-1.0]`，值越高表示风险越高
 * `is_nsfw`：当`nsfw>=0.8`时判定为色情图像，也可以自行根据`nsfw`分险系数判断
 
-### 测试API
+### Demo
 
-* 测试地址：[https://nsfw.demo.mba/url_check?url=https://www.imgurl.org/static/images/logo.png](https://nsfw.demo.mba/url_check?url=https://www.imgurl.org/static/images/logo.png)
+* 测试地址：[https://nsfw.demo.mba](https://nsfw.demo.mba)
 
 > 测试地址存在限流设置，仅供测试使用，请勿用于其它用途！
 

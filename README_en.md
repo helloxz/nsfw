@@ -54,8 +54,9 @@ Then start: `docker-compose up -d`
 
 ### Environment variables
 
-- TOKEN: Authentication token (set your own string). If not set, authentication is disabled.
-- WORKERS: Number of worker processes, default 1. Increase this for multi-core CPUs.
+- `TOKEN`: Authentication token (set your own string). If not set, authentication is disabled.
+- `WORKERS`: Number of worker processes, default 1. Increase this for multi-core CPUs.
+* `WEBUI`: Whether to enable the WEBUI, the parameter value is `off/on`, default is `off` (disabled).
 
 ## HTTP API
 
@@ -102,9 +103,9 @@ curl --location --request POST 'http://localhost:6086/api/upload_check' \
 - data.nsfw: Risk score [0.0–1.0]. Higher means more risky.
 - is_nsfw: Considered NSFW when nsfw >= 0.8. You can also decide based on the nsfw score threshold that fits your use case.
 
-### Test API
+### Demo
 
-- Demo: https://nsfw.demo.mba/url_check?url=https://www.imgurl.org/static/images/logo.png
+- Test URL: [https://nsfw.demo.mba](https://nsfw.demo.mba)
 
 > The demo is rate limited and for testing only. Do not use it for other purposes.
 
