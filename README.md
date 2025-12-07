@@ -65,20 +65,20 @@ services:
 
 ### 传递URL检测
 
-未启用鉴权(GET)：
+GET请求方式（不使用鉴权）：
 
 ```
 curl 'http://localhost:6086/api/url_check?url=https://www.imgurl.org/static/images/logo.png'
 ```
 
-启用鉴权(GET)：
+GET请求方式（启用鉴权）：
 
 ```
 curl 'http://localhost:6086/api/url_check?url=https://www.imgurl.org/static/images/logo.png' \
 --header 'Authorization: Bearer your_token_here'
 ```
 
-使用POST方式传递：
+POST请求方式：
 
 ```
 curl --location --request POST 'http://192.168.50.20:6086/api/url_check' \
