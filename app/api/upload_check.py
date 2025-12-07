@@ -2,7 +2,7 @@ from app.utils.helper import show_json
 from fastapi import Request, UploadFile
 import io
 from PIL import Image
-from app.api.check import ALLOWED_MIME, MAX_SIZE, _infer
+from app.api.url_check import ALLOWED_MIME, MAX_SIZE, _infer
 
 # 仅用于将 PIL 的格式名映射到标准 MIME（以实际解码结果为准）
 FORMAT_TO_MIME = {

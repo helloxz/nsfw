@@ -13,7 +13,7 @@ async def auth(request: Request, call_next: Callable):
     # 从环境变量中获取TOKEN
     import os
     os_token = os.getenv("TOKEN", "")
-    print(f"Auth Middleware: os_token={os_token}")
+    # print(f"Auth Middleware: os_token={os_token}")
     # 如果没获取到，则不进行鉴权，直接放行
     if not os_token:
         return await call_next(request)

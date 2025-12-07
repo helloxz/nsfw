@@ -63,19 +63,29 @@ services:
 
 ## HTTP API
 
-### 通过URL检测
+### 传递URL检测
 
-未启用鉴权：
+未启用鉴权(GET)：
 
 ```
 curl 'http://localhost:6086/api/url_check?url=https://www.imgurl.org/static/images/logo.png'
 ```
 
-启用鉴权：
+启用鉴权(GET)：
 
 ```
 curl 'http://localhost:6086/api/url_check?url=https://www.imgurl.org/static/images/logo.png' \
 --header 'Authorization: Bearer your_token_here'
+```
+
+使用POST方式传递：
+
+```
+curl --location --request POST 'http://192.168.50.20:6086/api/url_check' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "url":"https://www.imgurl.org/static/images/logo.png"
+}'
 ```
 
 ### 通过上传图片文件进行检测
@@ -85,6 +95,8 @@ curl --location --request POST 'http://localhost:6086/api/upload_check' \
 --header 'Authorization: Bearer xxx' \
 --form 'file=@"/Users/zhangsan/Downloads/2660b27f2e5b24ac.jpeg"'
 ```
+
+> 如果启用了鉴权，请求时请添加header头：`Authorization: Bearer your_token_here`
 
 ### 返回值
 
