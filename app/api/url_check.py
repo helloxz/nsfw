@@ -5,6 +5,10 @@ import numpy as np
 from PIL import Image
 import onnxruntime as ort
 import httpx
+import cv2
+import numpy as np
+import zxingcpp
+import os
 
 # 允许的MIME类型
 ALLOWED_MIME = {
@@ -137,7 +141,7 @@ def _extract_middle_frame(image: Image.Image) -> Image.Image:
     return image
 
 class UrlCheckHandler:
-    async def check(self, url: str):
+    async def check(self, url: str,qr_detect:str="disable"):
         # 1. URL合法性校验
         if not _is_valid_url(url):
             return show_json(-1000, "Invalid URL, only http/https are supported.")
@@ -200,9 +204,24 @@ class UrlCheckHandler:
             image = _extract_middle_frame(image)
         except Exception:
             return show_json(-1000, "Image parsing failed.")
+        
+                
+        qr_status = "unknown"
+        ENABLE_QR_DETECTION = qr_detect.lower()
+        # 如果qr_detect里面的值不是enable或disable，则提示错误
+        if ENABLE_QR_DETECTION not in ["enable", "disable"]:
+            return show_json(-1000, "Invalid qr_detect value, only 'enable' or 'disable' are supported.")
+        
+        # 如果启用了二维码检测，则进行检测
+        if ENABLE_QR_DETECTION == "enable":
+            qr_status = await self.detect_qr_from_bytes(data)
 
         # 6. 推理
         result, err = _infer(image)
+
+        # 在result中追加qr_status字段
+        if result is not None:
+            result["qr_status"] = qr_status
         if err:
             return show_json(-1000, err)
 
@@ -210,7 +229,7 @@ class UrlCheckHandler:
         return show_json(200, "success", result)
     
     # 通过POST方式传递URL
-    async def post_check(self, req: dict):
+    async def post_check(self, req: dict,qr_detect:str="disable"):
         url = req.get("url", "")
         # 1. URL合法性校验
         if not _is_valid_url(url):
@@ -255,6 +274,15 @@ class UrlCheckHandler:
                     return show_json(-1000, f"Download failed, status code: {get_resp.status_code}")
 
                 data = get_resp.content
+                qr_status = "unknown"
+                ENABLE_QR_DETECTION = qr_detect.lower()
+                # 如果qr_detect里面的值不是enable或disable，则提示错误
+                if ENABLE_QR_DETECTION not in ["enable", "disable"]:
+                    return show_json(-1000, "Invalid qr_detect value, only 'enable' or 'disable' are supported.")
+                # 如果启用了二维码检测，则进行检测
+                if ENABLE_QR_DETECTION == "enable":
+                    qr_status = await self.detect_qr_from_bytes(data)
+
 
         except httpx.TimeoutException:
             return show_json(-1000, "Request timed out (>20s).")
@@ -277,8 +305,48 @@ class UrlCheckHandler:
 
         # 6. 推理
         result, err = _infer(image)
+        # 在result中追加qr_status字段
+        if result is not None:
+            result["qr_status"] = qr_status
         if err:
             return show_json(-1000, err)
 
         # 7. 返回结果
         return show_json(200, "success", result)
+    
+    async def detect_qr_from_bytes(self,data: bytes) -> str:
+        """
+        从原始图片字节数据中检测是否包含二维码。
+
+        Args:
+            data (bytes): 图片的原始字节数据（如从 HTTP 响应 .content 获取）
+
+        Returns:
+            str: "qr"（是二维码）、"not_qr"（不是）、"unknown"（识别失败/无效图像）
+        """
+        try:
+            # 将字节解码为 OpenCV 图像（BGR）
+            nparr = np.frombuffer(data, np.uint8)
+            img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if img_bgr is None:
+                return "unknown"
+
+            # 转为 RGB（zxingcpp 推荐格式）
+            img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+            # 使用 zxingcpp 识别
+            results = zxingcpp.read_barcodes(img_rgb)
+
+            if results:
+                # 只要至少识别出一个条码，且类型是 QR_CODE
+                for res in results:
+                    if res.format == zxingcpp.BarcodeFormat.QRCode:
+                        return "qr"
+                # 识别到其他类型条码（如 CODE_128），不算 QR
+                return "not_qr"
+            else:
+                return "not_qr"
+
+        except Exception:
+            return "error"
